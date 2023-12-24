@@ -217,13 +217,11 @@ bool AChessBoard::FindPath(TArray<UBoardNodeFinal*>& Path, AActor* InActor, UBoa
 				PreList.Add(Neighbor);
 				Neighbor->PreNode =CurrentNode;
 			}
-			if (PreList.Num() <= 0)
-				break;
-			else
-				CurrentNode = PreList[0];
 		}
-		
-
+		if (PreList.Num() <= 0)
+			break;
+		else
+			CurrentNode = PreList[0];
 	}
 	PreList.Empty();
 	PostList.Empty();

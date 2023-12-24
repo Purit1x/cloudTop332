@@ -123,5 +123,17 @@ public:
 		TArray<FColor>& InVertexColors,
 		TArray<FVector>& InTangents,
 		FVector InOffset) {};
+
+	//弈子进入棋格
+	void EnterNode(AActor *InActor);
+
+	//弈子离开棋格
+	void LeaveNode(AActor *InActor);
+
+	//弈子将棋格设为目标点，防止弈子之间的位置冲突
+	void ReserveNode(AActor *InActor);
+
+	//取消标记
+	void CancelReservation(AActor *InActor);
 };
 
