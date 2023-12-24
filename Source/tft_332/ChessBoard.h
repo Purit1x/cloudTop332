@@ -47,7 +47,7 @@ protected:
 public:	
 	//生成棋盘函数,将其余函数进行一个封装；
 	UFUNCTION(BlueprintCallable)//BlueprintCallable函数可以在蓝图编辑器中调用
-		void GenerateChessBoard();
+	void GenerateChessBoard();
 	//生成六边形棋格；
 	UFUNCTION()
 	void GenerateHexNodes(float InHexSize, int InRow, int InColumn);
