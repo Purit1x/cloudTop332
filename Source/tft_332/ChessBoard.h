@@ -1,12 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
-
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BoardNodeFinal.h"
 #include "ChessBoard.generated.h"
-UCLASS()
+class UProceduralMeshComponent;
+class UMaterial;
+UCLASS(hideCategories = (Materials))
 class TFT_332_API AChessBoard : public AActor
 {
 	GENERATED_BODY()
@@ -55,7 +54,7 @@ public:
 	UFUNCTION()
 	void InitHexNode();
 	//获取坐标棋格
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	UBoardNodeFinal* GetNode(FGridCoordinates InCoord) const;
 	//自动寻路算法,StopSteps代表距离目标位置的距离；
 	UFUNCTION(BlueprintCallable)
@@ -63,5 +62,51 @@ public:
 	//寻路-获取目标点范围内的棋格
 	UFUNCTION()
 	TArray<UBoardNodeFinal*> GetNodeNeighbors(UBoardNodeFinal* InNode, int InStep = 0) const;
+	//模型-棋盘模型
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UProceduralMeshComponent* Mesh;
+
+	//模型-通行材质
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMaterialInterface* PassMaterial;
+
+	//模型-阻挡材质
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMaterialInterface* BlockMaterial;
+
+	//模型-阻挡材质1
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMaterialInterface* DebugMaterial1;
+
+	//模型-阻挡材质2
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMaterialInterface* DebugMaterial2;
+
+	//模型-生成棋盘模型
+	UFUNCTION(BlueprintCallable)
+	void GenerateMapMesh();
+
+	//模型-设置棋格材质
+	UFUNCTION(BlueprintCallable)
+	void SetNodeMaterial(UBoardNodeFinal* InNode, UMaterialInterface* InMaterial);
+
+	//模型-重置棋格材质
+	UFUNCTION(BlueprintCallable)
+	void ResetNodeMaterial(UBoardNodeFinal* InNode);
+
+	//模型-重置所有棋格材质
+	UFUNCTION(BlueprintCallable)
+	void ResetNodeMaterialAll();
+
+	//基础-判断是否在棋格内
+	UFUNCTION(BlueprintCallable)
+	UBoardNodeFinal* CheckHitNode(FVector InPosition);
+
+	//基础-判断是否在六边形棋格内
+	UFUNCTION()
+	UBoardNodeFinal* CheckHitHexNode(FVector InPosition);
+
+
+
 
 };

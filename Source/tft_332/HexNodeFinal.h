@@ -38,4 +38,13 @@ public:
 		return Size * FMath::Sqrt(3) * 0.5;
 	}
 	
+	//重写绘制函数
+	virtual void DrawNode(TArray<FVector> &InVertices,//顶点
+		TArray<int32> &InIndecies,//索引
+		TArray<FVector> &InNormals,//发现
+		TArray<FVector2D> &InUV,//顶点和贴图的映射
+		TArray<FColor> &InVertexColors,//顶点颜色
+		TArray<FVector> &InTangents,//切线；
+		FVector InOffset) override;//偏移值；
+
 };
