@@ -1,30 +1,31 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BoardNodeFinal.h"
+#include "BoardNode.h"
 #include"ChessBoard.h"
 
-//初始化函数；
-void UBoardNodeFinal::InitNode(AChessBoard* InChessBoard, FVector InLocation, FGridCoordinates InCoordinate, float InSize)
+//初始化函数
+void UBoardNode::InitNode(AChessBoard* InGridMap, FVector InLocation, FGridVector InCoordinate, float InSize)
 {
-	ChessBoard = InChessBoard;
+	GridMap = InGridMap;
 	Location = InLocation;
 	Coordinate = InCoordinate;
 	Size = InSize;
 }
 
-
 //获取相邻棋格
-TArray<UBoardNodeFinal*>UBoardNodeFinal::GetNeighbors()
+TArray<UBoardNode*> UBoardNode::GetNeighbors()
 {
-	TArray<UBoardNodeFinal*>Nodes;
+	TArray<UBoardNode*> Nodes;
 	return Nodes;
 }
-//判断棋格是否有障碍物(有返回False，反之返回True；
-bool UBoardNodeFinal::CanPass(AActor* InActor)const
+
+//判断棋格是否能通行
+bool UBoardNode::CanPass(AActor* InActor) const
 {
-	if (PassFlag >= EBoardPassFlag::Block)
+	if (PassFlag >= ENodePassFlag::Block)
 		return false;
+	//判断是否有其他棋子站在当前棋格上
 	if (NodeActors.Num() > 0 && InActor)
 	{
 		if (NodeActors.Contains(InActor))
@@ -36,7 +37,7 @@ bool UBoardNodeFinal::CanPass(AActor* InActor)const
 }
 
 // 弈子进入棋格
-void UBoardNodeFinal::EnterNode(AActor *InActor)
+void UBoardNode::EnterNode(AActor* InActor)
 {
 	if (InActor)
 	{
@@ -46,7 +47,7 @@ void UBoardNodeFinal::EnterNode(AActor *InActor)
 }
 
 // 弈子离开棋格
-void UBoardNodeFinal::LeaveNode(AActor *InActor)
+void UBoardNode::LeaveNode(AActor* InActor)
 {
 	if (InActor && NodeActors.Contains(InActor))
 	{
@@ -56,17 +57,17 @@ void UBoardNodeFinal::LeaveNode(AActor *InActor)
 }
 
 // 弈子将棋格设为目标点，棋格预存弈子
-void UBoardNodeFinal::ReserveNode(AActor *InActor)
+void UBoardNode::ReserveNode(AActor* InActor)
 {
 	if (InActor)
 	{
 		NodeActors.AddUnique(InActor);
-		
+
 	}
 }
 
 // 弈子遇到敌人等事件触发，取消寻路
-void UBoardNodeFinal::CancelReservation(AActor *InActor)
+void UBoardNode::CancelReservation(AActor* InActor)
 {
 	if (InActor && NodeActors.Contains(InActor))
 	{

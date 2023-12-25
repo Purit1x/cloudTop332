@@ -2,32 +2,34 @@
 
 
 #include "ChessBoard.h"
-#include "HexNodeFinal.h"
+#include "HexNode.h"
 #include "ProceduralMeshComponent.h"
-// Sets default values
+//构造函数
 AChessBoard::AChessBoard()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
+	Mesh = CreateDefaultSubobject<UProceduralMeshComponent>("MapMesh");
+	this->SetRootComponent(Mesh);
 }
 
-// Called when the game starts or when spawned
+//游戏第一帧调用
 void AChessBoard::BeginPlay()
 {
 	Super::BeginPlay();
-	//生成棋盘
-	GenerateChessBoard();
+	//重新生成棋盘
+	GenerateGridMap();
 }
+
 //初始化属性时调用
 void AChessBoard::PostInitProperties()
 {
 	Super::PostInitProperties();
-	GenerateChessBoard();
+	GenerateGridMap();
 }
+
 #if WITH_EDITOR
 //编辑器中改变属性时调用
-void AChessBoard::PostEditChangeProperty(FPropertyChangedEvent &PropertyChangedEvent)
+void AChessBoard::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	//当行、列、大小改变时重新生成棋盘
@@ -36,142 +38,140 @@ void AChessBoard::PostEditChangeProperty(FPropertyChangedEvent &PropertyChangedE
 		|| PropertyChangedEvent.Property->GetName() == "Size")
 	{
 		//重新生成棋盘
-		GenerateChessBoard();
+		GenerateGridMap();
 	}
 
 }
 #endif
-//生成棋盘；
-void AChessBoard::GenerateChessBoard()
+
+//生成棋盘入口
+void AChessBoard::GenerateGridMap()
 {
-	for (auto a : BoardMapNode)
+	for (auto Node : NodeMap)
 	{
-		if (a.Value)
-			a.Value->MarkPendingKill();
+		//标记垃圾回收
+		if (Node.Value)
+			Node.Value->MarkPendingKill();
 	}
 	//重置Map
-	BoardMapNode.Reset();
+	NodeMap.Reset();
 	//重新生成棋格
-	GenerateHexNodes(BoardSize, BoardRow, BoardColumn);
-
+	GenerateNodes(Size, Roll, Colume);
+	//重新生成模型
+	GenerateMapMesh();
 }
-//生成六边形棋格；
-void AChessBoard::GenerateHexNodes(float InHexSize, int InRow, int InColumn)
+
+//生成棋格入口
+void AChessBoard::GenerateNodes(float InSize, int InRoll, int InColume)
 {
-	FVector TemHexLocation;
-	for (int i = 0; i < InRow; i++)
+	switch (MapType)
 	{
-		for (int j = 0; j < InColumn; j++)
+	case EGridType::None:
+		break;
+		//六边形棋格
+	case EGridType::Hex:
+		GenerateHexNodes(InSize, InRoll, InColume);
+		break;
+	default:
+		break;
+	}
+	//初始化棋格
+	InitNodes();
+}
+
+//生成六边形棋格
+void AChessBoard::GenerateHexNodes(float InHexSize, int InRoll, int InColume)
+{
+	FVector tHexLocation;
+	for (int i = 0; i < InRoll; ++i)
+	{
+		for (int j = 0; j < InColume; ++j)
 		{
-			FGridCoordinates TemHexVector = FGridCoordinates(j, i);
-			TemHexLocation.X = 1.5 * InHexSize * i;//在ue中X代表二维平面的y轴，经计算发现，大小关系为1.5乘以大小；
-			if (i % 2 == 0)
-			{
-				TemHexLocation.Y = FMath::Sqrt(3) * InHexSize * j;//经计算发现，边长为1时相邻两个点的中心位置的相距根号3；
-			}
-			else
-				TemHexLocation.Y = (FMath::Sqrt(3) * InHexSize * j + FMath::Sqrt(3) * 0.5 * InHexSize);
-			TemHexLocation.Z = 0;
-			TemHexLocation += GetActorLocation();
-			UHexNodeFinal *TemNode = NewObject<UHexNodeFinal>(this);
-			TemNode->InitNode(this, TemHexLocation, TemHexVector, InHexSize);
-			BoardMapNode.Add(TemHexVector, TemNode);
-
-
+			//UE中横向坐标轴为Y，纵向坐标轴为X，需要调换在二维坐标系XY的值
+			FGridVector tHexVector = FGridVector(j, i);
+			tHexLocation.X = 1.5 * InHexSize * i;
+			tHexLocation.Y = i % 2 == 0 ? (FMath::Sqrt(3) * InHexSize * j) : (FMath::Sqrt(3) * InHexSize * j + FMath::Sqrt(3) * 0.5 * InHexSize);
+			tHexLocation.Z = 0;
+			tHexLocation += GetActorLocation();
+			UHexNode* tNode = NewObject<UHexNode>(this);
+			//棋格初始化
+			tNode->InitNode(this, tHexLocation, tHexVector, InHexSize);
+			NodeMap.Add(tHexVector, tNode);
 		}
 	}
 }
-//初始化六边形棋格
-void AChessBoard::InitHexNode()
+
+//初始化棋格入口
+void AChessBoard::InitNodes()
 {
-	for (auto CurrentNode : BoardMapNode)
+	switch (MapType)
 	{
-		UHexNodeFinal *TemHexNode = Cast<UHexNodeFinal>(CurrentNode.Value);
+	case EGridType::None:
+		break;
+		//六边形棋格
+	case EGridType::Hex:
+		InitHexNodes();
+		break;
+	default:
+		break;
+	}
+}
+
+//初始化六边形棋格
+void AChessBoard::InitHexNodes()
+{
+	//设置六边形棋格相邻棋格，判断对应坐标棋格是否存在，并赋值
+	for (auto CurrentNode : NodeMap)
+	{
+		UHexNode* TemHexNode = Cast<UHexNode>(CurrentNode.Value);
 		if (!TemHexNode)
 			continue;
-		//右上角棋格；
-		FGridCoordinates TemTopRight;
-		if (CurrentNode.Key.Y % 2 == 0)
-			TemTopRight = CurrentNode.Key + FGridCoordinates(0, 1);
-		else
-			TemTopRight = CurrentNode.Key + FGridCoordinates(1, 1);
-		//判断是不是HexNodeFinal类型，是则添加进TopRightNode；
-		if (BoardMapNode.Contains(TemTopRight) && BoardMapNode[TemTopRight]->IsA(UHexNodeFinal::StaticClass()))
-		{
-			TemHexNode->TopRightNode = Cast<UHexNodeFinal>(BoardMapNode[TemTopRight]);
-		}
+		FGridVector tRightUp = CurrentNode.Key.Y % 2 == 0 ? CurrentNode.Key + FGridVector(0, 1) : CurrentNode.Key + FGridVector(1, 1);
+		if (NodeMap.Contains(tRightUp) && NodeMap[tRightUp]->IsA(UHexNode::StaticClass()))
+			TemHexNode->RightUpNode = Cast<UHexNode>(NodeMap[tRightUp]);
 
-		//右边棋格；
-		FGridCoordinates TemRight = CurrentNode.Key + FGridCoordinates(1, 0);
-		if (BoardMapNode.Contains(TemRight) && BoardMapNode[TemRight]->IsA(UHexNodeFinal::StaticClass()))
-		{
-			TemHexNode->RightNode = Cast<UHexNodeFinal>(BoardMapNode[TemRight]);
-		}
+		FGridVector tRight = CurrentNode.Key + FGridVector(1, 0);
+		if (NodeMap.Contains(tRight) && NodeMap[tRight]->IsA(UHexNode::StaticClass()))
+			TemHexNode->RightNode = Cast<UHexNode>(NodeMap[tRight]);
 
-		//右下角棋格；
-		FGridCoordinates TemBottomRight;
-		if (CurrentNode.Key.Y % 2 == 0)
-			TemBottomRight = CurrentNode.Key + FGridCoordinates(0, -1);
-		else
-			TemBottomRight = CurrentNode.Key + FGridCoordinates(1, -1);
-		if (BoardMapNode.Contains(TemBottomRight) && BoardMapNode[TemBottomRight]->IsA(UHexNodeFinal::StaticClass()))
-		{
-			TemHexNode->BottomRightNode = Cast<UHexNodeFinal>(BoardMapNode[TemBottomRight]);
-		}
+		FGridVector tRightDown = CurrentNode.Key.Y % 2 == 0 ? CurrentNode.Key + FGridVector(0, -1) : CurrentNode.Key + FGridVector(1, -1);
+		if (NodeMap.Contains(tRightDown) && NodeMap[tRightDown]->IsA(UHexNode::StaticClass()))
+			TemHexNode->RightDownNode = Cast<UHexNode>(NodeMap[tRightDown]);
 
-		//左下角棋格
-		FGridCoordinates TemBottomLeft;
-		if (CurrentNode.Key.Y % 2 == 0)
-			TemBottomLeft = CurrentNode.Key + FGridCoordinates(-1, -1);
-		else
-			TemBottomLeft = CurrentNode.Key + FGridCoordinates(0, -1);
-		//判断是不是HexNodeFinal类型，是则添加进BottomLeftNode；
-		if (BoardMapNode.Contains(TemBottomLeft) && BoardMapNode[TemBottomLeft]->IsA(UHexNodeFinal::StaticClass()))
-		{
-			TemHexNode->BottomLeftNode = Cast<UHexNodeFinal>(BoardMapNode[TemBottomLeft]);
-		}
+		FGridVector tLeftDown = CurrentNode.Key.Y % 2 == 0 ? CurrentNode.Key + FGridVector(-1, -1) : CurrentNode.Key + FGridVector(0, -1);
+		if (NodeMap.Contains(tLeftDown) && NodeMap[tLeftDown]->IsA(UHexNode::StaticClass()))
+			TemHexNode->LeftDownNode = Cast<UHexNode>(NodeMap[tLeftDown]);
 
-		//左边棋格
-		FGridCoordinates TemLeft = CurrentNode.Key + FGridCoordinates(-1, 0);
-		//判断是不是HexNodeFinal类型，是则添加进LeftNode；
-		if (BoardMapNode.Contains(TemLeft) && BoardMapNode[TemLeft]->IsA(UHexNodeFinal::StaticClass()))
-		{
-			TemHexNode->LeftNode = Cast<UHexNodeFinal>(BoardMapNode[TemLeft]);
-		}
+		FGridVector tLeft = CurrentNode.Key + FGridVector(-1, 0);
+		if (NodeMap.Contains(tLeft) && NodeMap[tLeft]->IsA(UHexNode::StaticClass()))
+			TemHexNode->LeftNode = Cast<UHexNode>(NodeMap[tLeft]);
 
-		//左上角棋格
-		FGridCoordinates TemTopLeft;
-		if (CurrentNode.Key.Y % 2 == 0)
-			TemTopLeft = CurrentNode.Key + FGridCoordinates(-1, 1);
-		else
-			TemTopLeft = CurrentNode.Key + FGridCoordinates(0, 1);
-		//判断是不是HexNodeFinal类型，是则添加进TopLeftNode；
-		if (BoardMapNode.Contains(TemTopLeft) && BoardMapNode[TemTopLeft]->IsA(UHexNodeFinal::StaticClass()))
-		{
-			TemHexNode->TopLeftNode = Cast<UHexNodeFinal>(BoardMapNode[TemTopLeft]);
-		}
+		FGridVector tLeftUp = CurrentNode.Key.Y % 2 == 0 ? CurrentNode.Key + FGridVector(-1, 1) : CurrentNode.Key + FGridVector(0, 1);
+		if (NodeMap.Contains(tLeftUp) && NodeMap[tLeftUp]->IsA(UHexNode::StaticClass()))
+			TemHexNode->LeftUpNode = Cast<UHexNode>(NodeMap[tLeftUp]);
+
 	}
 }
 
 //根据棋盘坐标获取棋格
-UBoardNodeFinal *AChessBoard::GetNode(FGridCoordinates InCoord) const
+UBoardNode* AChessBoard::GetNode(FGridVector InCoord) const
 {
-	if (BoardMapNode.Contains(InCoord))
-		return BoardMapNode[InCoord];
+	if (NodeMap.Contains(InCoord))
+		return NodeMap[InCoord];
 	else
 		return nullptr;
-};
-//寻路算法；
-bool AChessBoard::FindPath(TArray<UBoardNodeFinal *> &Path, AActor *InActor, UBoardNodeFinal *FromNode, UBoardNodeFinal *ToNode, int StopSteps)
+}
+
+bool AChessBoard::FindPath(TArray<UBoardNode*>& Path, AActor* InActor, UBoardNode* FromNode, UBoardNode* ToNode, int StopSteps)
 {
 	Path.Empty();
-	//首先判断起始点和终点是否有效；
+	//安全判断
 	if (!FromNode || !ToNode)
 		return false;
-	if (!BoardMapNode.FindKey(FromNode) || !BoardMapNode.FindKey(ToNode))
+	if (!NodeMap.FindKey(FromNode) || !NodeMap.FindKey(ToNode))
 		return false;
-	//将终点以及StopSteps距离内的棋格都找到；
-	TArray<UBoardNodeFinal *>ToNodes = GetNodeNeighbors(ToNode, StopSteps);
+	//获取实际所有终点
+	TArray<UBoardNode*> ToNodes = GetNodeNeighbors(ToNode, StopSteps);
 	for (int i = ToNodes.Num() - 1; i >= 0; i--)
 	{
 		if (!ToNodes[i]->CanPass(InActor))
@@ -181,65 +181,65 @@ bool AChessBoard::FindPath(TArray<UBoardNodeFinal *> &Path, AActor *InActor, UBo
 	if (!FromNode->CanPass(InActor))
 		return false;
 	if (ToNodes.Num() == 0)
-		//判断是否已经到达终点
-		if (ToNodes.Contains(FromNode))
-			return true;
+		return false;
+	//判断是否已经到达终点
+	if (ToNodes.Contains(FromNode))
+		return true;
 
-
-	//将要遍历的节点；
-	TArray<UBoardNodeFinal *>PreList;
-	//遍历结束的节点；
-	TArray<UBoardNodeFinal *>PostList;
-	//当前节点
-	UBoardNodeFinal *CurrentNode;
-	CurrentNode = FromNode;
-	//将起始点加入将要遍历的节点中；
-	PreList.Add(CurrentNode);
-	bool IsFound = false;
-	while (!IsFound)
+	//将要遍历的路点
+	TArray<UBoardNode*> openList;
+	//已经完成遍历的路点
+	TArray<UBoardNode*> closeList;
+	//当前所在路点
+	UBoardNode* nowNode;
+	nowNode = FromNode;
+	openList.Add(nowNode);
+	bool bFinded = false;
+	//A*寻路
+	while (!bFinded)
 	{
-		//将起始点加入到已经遍历的节点里面，并从将要遍历的节点中移除；
-		PreList.Remove(CurrentNode);
-		PostList.Add(CurrentNode);
-		//找到现在节点的相邻节点；
-		TArray< UBoardNodeFinal *>CurrentNeighbors = CurrentNode->GetNeighbors();
-		for (auto Neighbor : CurrentNeighbors)
+		//移除openList，加入closeList
+		openList.Remove(nowNode);
+		closeList.Add(nowNode);
+		//获取相邻路点
+		TArray<UBoardNode*> neighbors = nowNode->GetNeighbors();
+		for (auto neighbor : neighbors)
 		{
-			//相邻节点为空，进行下一个节点；
-			if (!Neighbor)
+			if (!neighbor)
 				continue;
-			if (ToNodes.Contains(Neighbor))
+			//判断相邻路点是否为终点
+			if (ToNodes.Contains(neighbor))
 			{
-				IsFound = true;
-				ToNode = Neighbor;
-				Neighbor->PreNode = CurrentNode;
+				bFinded = true;
+				ToNode = neighbor;
+				neighbor->PreNode = nowNode;
 			}
-			//如果在PostList或者不能通行则跳过；
-			if (PostList.Contains(Neighbor) || !Neighbor->CanPass(InActor))
+			//如果在closeList或不能通行则跳过
+			if (closeList.Contains(neighbor) || !neighbor->CanPass(InActor))
 				continue;
-			if (!PreList.Contains(Neighbor))
+			//如果不在openlist，则加入openlist的队尾，以备后用
+			if (!openList.Contains(neighbor))
 			{
-				PreList.Add(Neighbor);
-				Neighbor->PreNode = CurrentNode;
+				openList.Add(neighbor);
+				neighbor->PreNode = nowNode;
 			}
-
 		}
-		if (PreList.Num() <= 0)
+		//取出队首的路点，设置为下次循环遍历的路点
+		if (openList.Num() <= 0)
 			break;
 		else
-			CurrentNode = PreList[0];
-
+			nowNode = openList[0];
 	}
-	PreList.Empty();
-	PostList.Empty();
+	openList.Empty();
+	closeList.Empty();
 	//找到了路径
-	if (IsFound)
+	if (bFinded)
 	{
-		UBoardNodeFinal *TemNode = ToNode;
-		while (TemNode != FromNode)
+		UBoardNode* tNode = ToNode;
+		while (tNode != FromNode)
 		{
-			Path.Add(TemNode);
-			TemNode = Cast<UBoardNodeFinal>(TemNode->PreNode);
+			Path.Add(tNode);
+			tNode = Cast<UBoardNode>(tNode->PreNode);
 		}
 		//获取的路径时从终点->起点的路径，需要反转回起点->终点的路径
 		Algo::Reverse(Path);
@@ -248,13 +248,24 @@ bool AChessBoard::FindPath(TArray<UBoardNodeFinal *> &Path, AActor *InActor, UBo
 	}
 
 	return false;
+
 }
-TArray<UBoardNodeFinal *> AChessBoard::GetNodeNeighbors(UBoardNodeFinal *InNode, int InStep) const
+
+//判断路径是否存在
+bool AChessBoard::IsPathExist(AActor* InActor, UBoardNode* FromNode, UBoardNode* ToNode, int StopSteps)
+{
+	//回传FindPath的值
+	TArray<UBoardNode*> Path;
+	return FindPath(Path, InActor, FromNode, ToNode, StopSteps);
+}
+
+//获取相邻棋格
+TArray<UBoardNode*> AChessBoard::GetNodeNeighbors(UBoardNode* InNode, int InStep) const
 {
 	int neighborSteps = InStep;
-	TArray<UBoardNodeFinal *> nowCheckList;
-	TArray<UBoardNodeFinal *> nextCheckList;
-	TArray<UBoardNodeFinal *> findList;
+	TArray<UBoardNode*> nowCheckList;
+	TArray<UBoardNode*> nextCheckList;
+	TArray<UBoardNode*> findList;
 	nextCheckList.AddUnique(InNode);
 	findList.AddUnique(InNode);
 
@@ -263,12 +274,12 @@ TArray<UBoardNodeFinal *> AChessBoard::GetNodeNeighbors(UBoardNodeFinal *InNode,
 	{
 		nowCheckList = nextCheckList;
 		nextCheckList.Empty();
-		for (UBoardNodeFinal *a : nowCheckList)
+		for (UBoardNode* a : nowCheckList)
 		{
 			if (!a)
 				continue;
-			TArray<UBoardNodeFinal *> neighbors = a->GetNeighbors();
-			for (UBoardNodeFinal *b : neighbors)
+			TArray<UBoardNode*> neighbors = a->GetNeighbors();
+			for (UBoardNode* b : neighbors)
 			{
 				if (findList.Contains(b))
 					continue;
@@ -276,12 +287,11 @@ TArray<UBoardNodeFinal *> AChessBoard::GetNodeNeighbors(UBoardNodeFinal *InNode,
 				nextCheckList.AddUnique(b);
 			}
 		}
-		neighborSteps--;
+		neighborSteps -= 1;
 	}
 
 	return findList;
-};
-
+}
 
 //生成棋盘模型
 void AChessBoard::GenerateMapMesh()
@@ -290,7 +300,7 @@ void AChessBoard::GenerateMapMesh()
 	int Index = 0;
 	//重置
 	Mesh->ClearAllMeshSections();
-	for (auto a : BoardMapNode)
+	for (auto a : NodeMap)
 	{
 		if (!a.Value)
 			continue;
@@ -306,7 +316,7 @@ void AChessBoard::GenerateMapMesh()
 		//调用DrawNode，以引用方式回传绘制信息
 		a.Value->DrawNode(Vertices, Indecies, Normals, UV1, VertexColors, Tangents, GetActorLocation());
 		//用切线向量生成切线结构体
-		for (FVector &b : Tangents)
+		for (FVector& b : Tangents)
 			MeshTangents.Add(FProcMeshTangent(b, false));
 		//生成索引区块模型
 		Mesh->CreateMeshSection(Index, Vertices, Indecies, Normals, UV1, EmptyArray, EmptyArray, EmptyArray, VertexColors, MeshTangents, false);
@@ -316,8 +326,9 @@ void AChessBoard::GenerateMapMesh()
 	}
 
 }
+
 //设置模型材质
-void AChessBoard::SetNodeMaterial(UBoardNodeFinal *InNode, UMaterialInterface *InMaterial)
+void AChessBoard::SetNodeMaterial(UBoardNode* InNode, UMaterialInterface* InMaterial)
 {
 	if (!InNode || !InMaterial)
 		return;
@@ -325,7 +336,7 @@ void AChessBoard::SetNodeMaterial(UBoardNodeFinal *InNode, UMaterialInterface *I
 }
 
 //重置模型材质
-void AChessBoard::ResetNodeMaterial(UBoardNodeFinal *InNode)
+void AChessBoard::ResetNodeMaterial(UBoardNode* InNode)
 {
 	if (!InNode)
 		return;
@@ -336,48 +347,49 @@ void AChessBoard::ResetNodeMaterial(UBoardNodeFinal *InNode)
 		return;
 	}
 	//根据通行状态设置材质
-	if (InNode->PassFlag == EBoardPassFlag::Pass && PassMaterial)
+	if (InNode->PassFlag == ENodePassFlag::Pass && PassMaterial)
 		SetNodeMaterial(InNode, PassMaterial);
-	else if (InNode->PassFlag == EBoardPassFlag::Block && BlockMaterial)
+	else if (InNode->PassFlag == ENodePassFlag::Block && BlockMaterial)
 		SetNodeMaterial(InNode, BlockMaterial);
 
 }
+
 //重置所有模型材质
 void AChessBoard::ResetNodeMaterialAll()
 {
-	for (auto a : BoardMapNode)
+	for (auto a : NodeMap)
 	{
 		if (!a.Value)
 			continue;
 		ResetNodeMaterial(a.Value);
 	}
 }
+
 //判断是否在棋格内
-UBoardNodeFinal *AChessBoard::CheckHitNode(FVector InPosition)
+UBoardNode* AChessBoard::CheckHitNode(FVector InPosition)
 {
-	UBoardNodeFinal *tHitNode = nullptr;
+	UBoardNode* tHitNode = nullptr;
 	//判断Z轴，差距过大直接返回
 	if (FMath::Abs(InPosition.Z - GetActorLocation().Z) > 1)
 		return tHitNode;
 	switch (MapType)
 	{
-		case EBoardType::None:
-			break;
-		case EBoardType::Hex:
-			tHitNode = CheckHitHexNode(InPosition);
-			break;
-		default:
-			break;
+	case EGridType::None:
+		break;
+	case EGridType::Hex:
+		tHitNode = CheckHitHexNode(InPosition);
+		break;
+	default:
+		break;
 	}
 	return tHitNode;
 }
 
 //判断是否在六边形内
-
-UBoardNodeFinal *AChessBoard::CheckHitHexNode(FVector InPosition)
+UBoardNode* AChessBoard::CheckHitHexNode(FVector InPosition)
 {
-	UBoardNodeFinal *tHitNode = nullptr;
-	for (auto h : BoardMapNode)
+	UBoardNode* tHitNode = nullptr;
+	for (auto h : NodeMap)
 	{
 		if (!h.Value)
 			continue;
@@ -394,5 +406,3 @@ UBoardNodeFinal *AChessBoard::CheckHitHexNode(FVector InPosition)
 	}
 	return tHitNode;
 }
-
-
