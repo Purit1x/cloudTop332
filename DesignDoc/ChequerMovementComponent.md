@@ -27,3 +27,7 @@
 移动速度（矢量）为MovementDelta / DeltaTime。
 
 若本次移动可以到达下一个格点，则认为格点已达到，将其从路径中删除。若删除后路径为空，即移动完成，执行移动完成相关委托。否则执行达到中途点的相关委托。
+
+## Misc
+
+ChequerMovementComponent的元数据说明符应为BlueprintSpawnableComponent，否则使用蓝图类创建弈子角色时无法将无法为弈子添加移动组件。
