@@ -114,8 +114,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Navigation")
 	TArray<AActor*> NodeActors;
 
-	
-
 	//寻路-获取两两棋格的实际距离
 	UFUNCTION(BlueprintCallable)
 	virtual float GetRealRadiusSize() const { return Size; };
