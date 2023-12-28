@@ -51,6 +51,7 @@ protected:
 	void TaskFailed();
 
 	// 引导弈子进行旋转
+	UFUNCTION(BlueprintCallable)
 	void ConductChequerRotation();
 
 	// 目标弈子

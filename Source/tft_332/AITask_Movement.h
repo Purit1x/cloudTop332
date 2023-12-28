@@ -32,6 +32,10 @@ public:
 	// 获取AI所属弈子攻击范围
 	int GetAttackRange() const;
 
+	// 用于测试进入中途点的委托是否正常触发的函数
+	//UFUNCTION()
+	//void DebugEnterInterimNodeDelegate();
+
 protected:
 	// 触发任务时执行，即开始移动
 	virtual void Activate() override;
@@ -48,6 +52,7 @@ protected:
 	void TaskFailed();
 
 	// 进行移动
+	UFUNCTION(BlueprintCallable)
 	void ConductChequerMovement();
 
 	// 目标弈子
@@ -73,4 +78,10 @@ protected:
 	// 任务失败时执行的委托
 	UPROPERTY(BlueprintAssignable)
 	FGenericGameplayTaskDelegate OnTaskFailed;
+
+	/*UPROPERTY()
+	int EnterInterimDelegateExecNum = 0;
+
+	UPROPERTY()
+	int ConductMovementExecNum = 0;*/
 };

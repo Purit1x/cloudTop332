@@ -39,7 +39,7 @@ struct FRotationTarget {
 	float AcceptableDeviation = 0.0f;
 
 	// 用于获取指定位置相对于移动组件(即传入参数所属组件)的旋转度
-	FRotator GetTargetRotation(const FVector InLocation);
+	FRotator GetTargetRotation(const FVector InLocation)const;
 
 	// 清空旋转目标
 	void Clear();
@@ -47,6 +47,7 @@ struct FRotationTarget {
 
 };
 
+UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMoveDelegate);
 
 UCLASS(meta=(BlueprintSpawnableComponent), BlueprintType)
@@ -109,19 +110,19 @@ public:
 	// 弈子旋转目标
 	FRotationTarget RotationTarget;
 
-	// 转向完成时执行一系列任务
+	// 转向完成时执行一系列事件
 	UPROPERTY(BlueprintAssignable)
 	FMoveDelegate OnRotationComplete;
 
-	// 开始移动时执行任务
+	// 开始移动时执行事件
 	UPROPERTY(BlueprintAssignable)
 	FMoveDelegate OnBeginMovement;
 
-	// 进入中间点时执行任务
+	// 进入中间点时执行事件
 	UPROPERTY(BlueprintAssignable)
 	FMoveDelegate OnEnteringInterimNode;
 
-	// 完成移动时执行任务
+	// 完成移动时执行事件
 	UPROPERTY(BlueprintAssignable)
 	FMoveDelegate OnMovementComplete;
 

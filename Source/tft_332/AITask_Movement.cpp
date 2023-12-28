@@ -10,9 +10,12 @@ UAITask_Movement* UAITask_Movement::CreateAIMovementTask(AAIController* InAICont
 		return nullptr;
 	// 创建AIMoveTask
 	UAITask_Movement* ThisTask = UAITask::NewAITask<UAITask_Movement>(*InAIController, EAITaskPriority::High);
-	ThisTask->AITargetChequer = InChequer;
-	ThisTask->AITargetNode = InTargetNode;
-	ThisTask->ChequerAttackRange = AttackRange;
+	if (ThisTask)
+	{
+		ThisTask->AITargetChequer = InChequer;
+		ThisTask->AITargetNode = InTargetNode;
+		ThisTask->ChequerAttackRange = AttackRange;
+	}
 	return ThisTask;
 }
 
@@ -132,6 +135,7 @@ void UAITask_Movement::ConductChequerMovement()
 	}
 	if (!AITargetNode)
 		AITargetNode = TargetChequerCurrentNode;  // 若追踪的弈子暂无目标格点，则直接追踪其当前位置
+	//AITargetNode = TargetChequerCurrentNode;
 	if (!AITargetNode)  // 起点或终点有一不存在则无法构建路径
 	{
 		TaskFailed();
@@ -142,6 +146,7 @@ void UAITask_Movement::ConductChequerMovement()
 	if (AITargetNode == AICurrentNode)
 	{
 		TaskSucceeded();
+		//UE_LOG(LogTemp, Warning, TEXT("AIMove 1"));
 		return;
 	}
 
@@ -157,10 +162,15 @@ void UAITask_Movement::ConductChequerMovement()
 	if (FoundPath.Num() == 0)  // 已达终点
 	{
 		TaskSucceeded();
+		//UE_LOG(LogTemp, Warning, TEXT("AIMove 2"));
 		return;
 	}
+	//UE_LOG(LogTemp, Warning, TEXT("ExecNum %d"), ConductMovementExecNum++);
 
 	ChequerMovementComponent->SetChequerMovePath(FoundPath, true);  // ChequerMovementComponent使用的是Pop模拟栈，需逆转路径
+
+	/*if (!ChequerMovementComponent->OnEnteringInterimNode.IsAlreadyBound(this, &UAITask_Movement::DebugEnterInterimNodeDelegate))
+		ChequerMovementComponent->OnEnteringInterimNode.AddDynamic(this, &UAITask_Movement::DebugEnterInterimNodeDelegate);*/
 
 	//进入中途点时，应当及时更新路径，所以将本函数添加到进入中途点的委托中
 	if (!ChequerMovementComponent->OnEnteringInterimNode.IsAlreadyBound(this, &UAITask_Movement::ConductChequerMovement))
@@ -169,3 +179,8 @@ void UAITask_Movement::ConductChequerMovement()
 	if (!ChequerMovementComponent->OnMovementComplete.IsAlreadyBound(this, &UAITask_Movement::TaskSucceeded))
 		ChequerMovementComponent->OnMovementComplete.AddDynamic(this, &UAITask_Movement::TaskSucceeded);
 }
+
+/*void UAITask_Movement::DebugEnterInterimNodeDelegate()
+{
+	UE_LOG(LogTemp, Warning, TEXT("%d"), EnterInterimDelegateExecNum++);
+}*/

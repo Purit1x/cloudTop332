@@ -3,24 +3,24 @@
 
 #include "ChequerMovementComponent.h"
 
-FRotationTarget::FRotationTarget() :bActive(false), RotationTargetChequer(nullptr), RotationTargetNode(nullptr), AcceptableDeviation(0.0f)
+FRotationTarget::FRotationTarget() :bActive(true), RotationTargetChequer(nullptr), RotationTargetNode(nullptr), AcceptableDeviation(0.0f)
 {
 
 }
 
-FRotationTarget::FRotationTarget(UBoardNode* InNode, const float InAcceptableDeviation) :bActive(false), RotationTargetChequer(nullptr),
+FRotationTarget::FRotationTarget(UBoardNode* InNode, const float InAcceptableDeviation) :bActive(true), RotationTargetChequer(nullptr),
 RotationTargetNode(InNode), AcceptableDeviation(InAcceptableDeviation)
 {
 
 }
 
-FRotationTarget::FRotationTarget(AActor* InRotationTargetChequer, const float InAcceptableDeviation) :bActive(false),
+FRotationTarget::FRotationTarget(AActor* InRotationTargetChequer, const float InAcceptableDeviation) :bActive(true),
 RotationTargetChequer(InRotationTargetChequer), RotationTargetNode(nullptr), AcceptableDeviation(InAcceptableDeviation)
 {
 
 }
 
-FRotationTarget::FRotationTarget(FRotator InRotation, const float InAcceptableDeviation):bActive(false), 
+FRotationTarget::FRotationTarget(FRotator InRotation, const float InAcceptableDeviation):bActive(true), 
 RotationTargetChequer(nullptr), RotationTargetNode(nullptr), AcceptableDeviation(InAcceptableDeviation)
 {
 
@@ -32,7 +32,7 @@ inline bool FRotationTarget::IsActive() const
 }
 
 // 获取组件到目标点的旋转度
-FRotator FRotationTarget::GetTargetRotation(const FVector InLocation)
+FRotator FRotationTarget::GetTargetRotation(const FVector InLocation)const
 {
 	if (RotationTargetNode)
 	{
@@ -154,7 +154,11 @@ void UChequerMovementComponent::TickMoveComponent(const float DeltaTime)
 			OnMovementComplete.Broadcast();
 		}
 		else
+		{
 			OnEnteringInterimNode.Broadcast();  // 执行进入中途点相关委托
+			//UE_LOG(LogTemp, Warning, TEXT("Entering Interim Node Succeeded. "));
+		}
+			
 	}
 }
 
