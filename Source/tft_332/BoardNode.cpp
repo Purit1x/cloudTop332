@@ -31,7 +31,11 @@ bool UBoardNode::CanPass(AActor* InActor) const
 		if (NodeActors.Contains(InActor))
 			return true;
 		else
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("CanPass Contains"));
 			return false;
+		}
+			
 	}
 	return true;
 }

@@ -17,6 +17,7 @@ struct FRotationTarget {
 	FRotationTarget();
 	FRotationTarget(UBoardNode *InNode, const float InAcceptableDeviation);
 	FRotationTarget(AActor *InRotationTargetChequer, const float InAcceptableDeviation);
+	FRotationTarget(FRotator InRotation, const float InAcceptableDeviation);
 
 	// 用于向外界提供旋转是否有效
 	inline bool IsActive() const;
@@ -80,6 +81,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetCurrentNode(UBoardNode *InNode);
 
+	// 获取弈子当前结点
+	UFUNCTION(BlueprintCallable)
+	UBoardNode* GetCurrentNode()const;
+
+	// 获取弈子目标结点
+	UFUNCTION(BlueprintCallable)
+	UBoardNode* GetTargetNode()const;
+
 
 	// 设置弈子路径
 	UFUNCTION(BlueprintCallable)
@@ -97,12 +106,28 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void CorrectCurrentNode();
 
+	// 弈子旋转目标
+	FRotationTarget RotationTarget;
+
+	// 转向完成时执行一系列任务
+	UPROPERTY(BlueprintAssignable)
+	FMoveDelegate OnRotationComplete;
+
+	// 开始移动时执行任务
+	UPROPERTY(BlueprintAssignable)
+	FMoveDelegate OnBeginMovement;
+
+	// 进入中间点时执行任务
+	UPROPERTY(BlueprintAssignable)
+	FMoveDelegate OnEnteringInterimNode;
+
+	// 完成移动时执行任务
+	UPROPERTY(BlueprintAssignable)
+	FMoveDelegate OnMovementComplete;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
-	// 弈子旋转目标
-	FRotationTarget RotationTarget;
 
 	// 弈子当前所处棋格
 	UPROPERTY(BlueprintReadOnly)
@@ -124,19 +149,5 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxMoveVelocity = 400.0f;
 
-	// 转向完成时执行一系列任务
-	UPROPERTY(BlueprintAssignable)
-	FMoveDelegate OnRotationComplete;
-
-	// 开始移动时执行任务
-	UPROPERTY(BlueprintAssignable)
-	FMoveDelegate OnBeginMovement;
-
-	// 进入中间点时执行任务
-	UPROPERTY(BlueprintAssignable)
-	FMoveDelegate OnEnteringInterimNode;
-
-	// 完成移动时执行任务
-	UPROPERTY(BlueprintAssignable)
-	FMoveDelegate OnMovementComplete;
+	
 };

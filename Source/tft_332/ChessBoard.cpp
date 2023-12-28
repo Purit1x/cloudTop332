@@ -167,11 +167,20 @@ bool AChessBoard::FindPath(TArray<UBoardNode*>& Path, AActor* InActor, UBoardNod
 	Path.Empty();
 	//安全判断
 	if (!FromNode || !ToNode)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("FP 1"));
 		return false;
+	}
+		
 	if (!NodeMap.FindKey(FromNode) || !NodeMap.FindKey(ToNode))
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("FP 2"));
 		return false;
+	}
+		
 	//获取实际所有终点
 	TArray<UBoardNode*> ToNodes = GetNodeNeighbors(ToNode, StopSteps);
+	//UE_LOG(LogTemp, Warning, TEXT("%d\n"), ToNodes.Num());
 	for (int i = ToNodes.Num() - 1; i >= 0; i--)
 	{
 		if (!ToNodes[i]->CanPass(InActor))
@@ -179,9 +188,17 @@ bool AChessBoard::FindPath(TArray<UBoardNode*>& Path, AActor* InActor, UBoardNod
 	}
 	//判断起点终点是否存在
 	if (!FromNode->CanPass(InActor))
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("FP 3"));
 		return false;
+	}
+		
 	if (ToNodes.Num() == 0)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("FP 4"));
 		return false;
+	}
+		
 	//判断是否已经到达终点
 	if (ToNodes.Contains(FromNode))
 		return true;
@@ -247,6 +264,7 @@ bool AChessBoard::FindPath(TArray<UBoardNode*>& Path, AActor* InActor, UBoardNod
 		return true;
 	}
 
+	//UE_LOG(LogTemp, Warning, TEXT("FP Final"));
 	return false;
 
 }

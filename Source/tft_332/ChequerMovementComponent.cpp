@@ -20,6 +20,12 @@ RotationTargetChequer(InRotationTargetChequer), RotationTargetNode(nullptr), Acc
 
 }
 
+FRotationTarget::FRotationTarget(FRotator InRotation, const float InAcceptableDeviation):bActive(false), 
+RotationTargetChequer(nullptr), RotationTargetNode(nullptr), AcceptableDeviation(InAcceptableDeviation)
+{
+
+}
+
 inline bool FRotationTarget::IsActive() const
 {
 	return bActive;
@@ -81,6 +87,9 @@ void UChequerMovementComponent::TickRotateComponent(const float DeltaTime)
 {
 	FRotator RotationOrigin = UpdatedComponent->GetComponentRotation();
 	FRotator RotationDestination = RotationTarget.GetTargetRotation(UpdatedComponent->GetComponentLocation());
+	// 只需研究航向角
+	RotationOrigin.Roll = RotationOrigin.Pitch = 0;
+	RotationDestination.Roll = RotationDestination.Pitch = 0;
 	// 比较当前航向角之差是否在可接受的范围内
 	if (FMath::Abs(RotationDestination.Yaw - RotationOrigin.Yaw) <= FMath::Max(RotationTarget.AcceptableDeviation, 0.1f))
 	{
@@ -208,6 +217,18 @@ void UChequerMovementComponent::SetCurrentNode(UBoardNode* InNode)
 	// 若新棋格非空，进入之
 	if (CurrentNode)
 		CurrentNode->EnterNode(GetOwner());
+}
+
+// 获取弈子当前结点
+UBoardNode* UChequerMovementComponent::GetCurrentNode()const
+{
+	return CurrentNode;
+}
+
+// 获取弈子目标结点
+UBoardNode* UChequerMovementComponent::GetTargetNode()const
+{
+	return TargetNode;
 }
 
 // 设置移动路径
