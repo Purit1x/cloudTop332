@@ -66,7 +66,7 @@ enum class ENodePassFlag : uint8
 };
 
 
-UCLASS()
+UCLASS(BlueprintType)
 class TFT_332_API UBoardNode : public UObject
 {
 	GENERATED_BODY()

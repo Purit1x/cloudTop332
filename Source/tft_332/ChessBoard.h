@@ -45,7 +45,7 @@ public:
 	int Colume;
 
 	//基础-棋盘的棋格
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TMap<FGridVector, UBoardNode*> NodeMap;
 
 	//基础-生成棋盘
